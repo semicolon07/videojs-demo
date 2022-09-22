@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link type="text/css" rel="stylesheet" href="./video.js/dist/video-js.min.css" />
+  <!-- <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" /> -->
+  <link type="text/css" rel="stylesheet" href="./videojs-seek-buttons/dist/videojs-seek-buttons.css" />
+  <style>
+    iframe#vid1_youtube_api {
+      /*pointer-events: none;*/
+    }
+  </style>
+</head>
+<body>
+  <video
+    id="my-video"
+    class="video-js"
+    controls
+    width="1024" height="768"
+    data-setup='{ "techOrder": ["youtube"] , 
+                "sources": [{ "type": "video/youtube", "src": "https://www.youtube.com/watch?v=MjVD6oUtkSo"}], 
+                      "youtube": { "modestbranding": 0, "iv_load_policy" : 1 } }'
+  >
+  </video>
+  <br/>
+  <input type="text" id="jump-to-seek-input" placeholder="Seek to seconds"><button onclick="onJumpToSeekClick()">Jump to seek</button>
+  <div>
+    <textarea id="console-log" style="width:1024px; height:300px;"></textarea>
+  </div>
+ 
+  <script src="./video.js/dist/video.min.js"></script>
+  <!-- <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script> -->
+  <script src="./videojs-seek-buttons/dist/videojs-seek-buttons.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-youtube/2.6.1/Youtube.min.js" integrity="sha512-mF+XuiEvJq707N/B9Fm/fI2wgMcWuFLsoztIp0UzEKgHCZgczbYpO2+Vq2TEi0LmE4crVj2r8AYru7X5QjVotw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+  </script>
+  <script type="text/javascript">
+    var trackedPlayer = videojs('my-video',{
+      //fluid: true,
+      playbackRates: [0.5, 1, 1.5, 2],
+      controlBar: {
+        pictureInPictureToggle : false,
+        currentTimeDisplay : true,
+        durationDisplay : true,
+        //children: ["DurationDisplay"]
+      },
+      plugins: {
+        seekButtons: {
+          forward: 10,
+          back: 10
+        }
+      }
+    });
+    var trackIntervalMs = 3000;
+    var previousTime = 0;
+    var currentTime = 0;
+    var seekStart = null;
+    var currentTimeInterval = null;
+    var consoleLogTextArea = document.getElementById('console-log');
+    function printLog(text){
+      const currValue = consoleLogTextArea.value;
+      consoleLogTextArea.value = text+'\r\n'+currValue;
+    }
+    function onJumpToSeekClick(){
+      const seekToSecond = document.getElementById('jump-to-seek-input').value;
+      trackedPlayer.currentTime(seekToSecond)
+      trackedPlayer.play();
+    }
+    trackedPlayer.on("play", function (e) {
+        printLog("Started at: " + trackedPlayer.currentTime() +" Seconds");
+        //console.log("Video playback started: " + trackedPlayer.currentTime());
+        resetVideoCurrentTimeInterval();
+    });
+
+    trackedPlayer.on("pause", function (e) {
+        printLog("Paused at: " + trackedPlayer.currentTime() +" Seconds");
+        clearInterval(currentTimeInterval);
+    });
+    
+    trackedPlayer.on('seeking', function() {
+        if(seekStart === null) {
+            seekStart = previousTime;
+        }
+    });
+    trackedPlayer.on('seeked', function() {
+        currentTime = trackedPlayer.currentTime();
+        printLog("Seeked at: " + currentTime +" Seconds");
+        seekStart = null;
+    });
+    trackedPlayer.on('ended', function() {
+        printLog("Ended at: " + currentTime +" Seconds");
+        clearInterval(currentTimeInterval);
+        this.dispose();
+    });
+
+    function fetchVideoCurrentTime() {
+        //console.log('fetchVideo currentTime : ', trackedPlayer.currentTime());
+        printLog("Tracking(every "+trackIntervalMs+ "ms) at: " + trackedPlayer.currentTime() +" Seconds");
+    }
+    function resetVideoCurrentTimeInterval(){
+        clearInterval(currentTimeInterval);
+        currentTimeInterval = setInterval(fetchVideoCurrentTime, trackIntervalMs);
+    }
+  </script>
+</body>
+</html>
